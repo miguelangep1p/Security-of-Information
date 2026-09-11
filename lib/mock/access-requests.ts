@@ -1,0 +1,48 @@
+import type { AccessRequest } from "@/lib/types";
+
+export const accessRequests: AccessRequest[] = [
+  {
+    id: "bg-1",
+    requester: "Ana Valdivia",
+    patient: "Hugo Salas Díaz",
+    recordId: "HC-00209",
+    reason: "Emergencia médica",
+    justification: "Paciente requiere evaluación inmediata en emergencia.",
+    status: "vigente",
+    requestedAt: "Hoy · 09:54",
+    window: "2 horas",
+  },
+  {
+    id: "bg-2",
+    requester: "Carlos Mendoza",
+    patient: "Elena Campos Ruiz",
+    recordId: "HC-2026-00184",
+    reason: "Atención no programada",
+    justification: "Interconsulta urgente fuera de la relación asistencial habitual.",
+    status: "pendiente",
+    requestedAt: "Hoy · 10:05",
+    window: "1 hora",
+  },
+  {
+    id: "bg-3",
+    requester: "Diego Robles",
+    patient: "Marta León Paz",
+    recordId: "HC-00190",
+    reason: "Emergencia médica",
+    justification: "Traslado desde centro periférico sin vínculo previo.",
+    status: "vencido",
+    requestedAt: "Ayer · 18:12",
+    window: "4 horas",
+  },
+  {
+    id: "bg-4",
+    requester: "Carlos Mendoza",
+    patient: "Tomás Silva Paz",
+    recordId: "HC-2026-00185",
+    reason: "Otro",
+    justification: "Consulta exploratoria sin justificación clínica suficiente.",
+    status: "denegado",
+    requestedAt: "03 sep · 16:40",
+    window: "—",
+  },
+];
