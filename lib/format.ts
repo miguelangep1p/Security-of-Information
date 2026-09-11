@@ -68,6 +68,8 @@ export const actionLabel: Record<string, string> = {
   LOGIN_SUCCESS: "Inicio de sesión",
   LOGOUT: "Cierre de sesión",
   SESSIONS_REVOKE: "Cerraste otras sesiones",
+  PASSKEY_REGISTER: "Registraste una passkey",
+  PASSKEY_DELETE: "Eliminaste una passkey",
   TRANSCRIPTION_APPROVE: "Validaste una transcripción",
   TRANSCRIPTION_EDIT: "Corregiste una transcripción",
   ACCESS_DENIED: "Acceso denegado",

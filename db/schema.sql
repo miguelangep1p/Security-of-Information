@@ -155,6 +155,20 @@ create table email_otps (
 
 create index email_otps_email_idx on email_otps (email, created_at desc);
 
+-- Desafíos WebAuthn de un solo uso (también en db/migrations/002_webauthn_challenges.sql).
+create table webauthn_challenges (
+  id          uuid primary key default gen_random_uuid(),
+  purpose     text not null check (purpose in ('registro', 'login')),
+  challenge   text not null,                       -- base64url, generado por el servidor
+  user_id     uuid references users (id) on delete cascade,   -- null en login sin usuario identificado
+  expires_at  timestamptz not null,
+  consumed_at timestamptz,
+  created_at  timestamptz not null default now(),
+  check (purpose <> 'registro' or user_id is not null)
+);
+
+create index webauthn_challenges_expires_idx on webauthn_challenges (expires_at);
+
 -- ─── Pacientes e historias clínicas ─────────────────────────────────────────
 
 create table patients (

@@ -21,6 +21,7 @@ import { Logo } from "@/components/Logo";
 import { PasskeyDialog, type PasskeyPhase } from "@/components/PasskeyDialog";
 import { homePath } from "@/lib/access";
 import { api, useApi } from "@/lib/client/api";
+import { signInWithPasskey } from "@/lib/client/passkeys";
 import { useSession } from "@/lib/client/session";
 import { roleLabel } from "@/lib/nav";
 import type { Role, Session, User } from "@/lib/types";
@@ -111,19 +112,28 @@ export default function LoginPage() {
 
   const handleCredentialLogin = async () => {
     const normalized = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-      setEmailError("Ingresa un correo institucional válido.");
+    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+    setEmailError("");
+
+    // Passkey real (WebAuthn). Sin correo, el navegador ofrece las passkeys guardadas para este sitio.
+    if (authMethod === "passkey") {
+      if (normalized && !validEmail) {
+        setEmailError("Ingresa un correo institucional válido o déjalo vacío.");
+        return;
+      }
+      setBusy(true);
+      try {
+        finishLogin(await signInWithPasskey(normalized || undefined));
+      } catch (error) {
+        setEmailError((error as Error).message);
+      } finally {
+        setBusy(false);
+      }
       return;
     }
 
-    if (authMethod === "passkey") {
-      if (!demoAvailable) {
-        setEmailError("La Passkey simulada solo está disponible en modo demostración. Usa el código por correo.");
-        return;
-      }
-      const match = users.find((u) => u.email === normalized);
-      setSelected({ email: normalized, label: match ? `${match.name} (${roleLabel[match.role]})` : normalized });
-      setPhase("intro");
+    if (!validEmail) {
+      setEmailError("Ingresa un correo institucional válido.");
       return;
     }
 

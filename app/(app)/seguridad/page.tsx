@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Fingerprint } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
 import { api, useApi } from "@/lib/client/api";
+import { registerPasskey } from "@/lib/client/passkeys";
 import { useSession } from "@/lib/client/session";
 import { actionLabel, authMethodLabel, describeDevice, formatWhen } from "@/lib/format";
 import type { SecurityOverview } from "@/lib/types";
@@ -10,7 +12,7 @@ import type { SecurityOverview } from "@/lib/types";
 export default function SeguridadPage() {
   const { session } = useSession();
   const overview = useApi<SecurityOverview>("/api/me/seguridad");
-  const [revoking, setRevoking] = useState(false);
+  const [busy, setBusy] = useState<"revoke" | "passkey" | string | null>(null);
   const [error, setError] = useState<string | null>(null);
   if (!session) return null;
 
@@ -19,16 +21,16 @@ export default function SeguridadPage() {
   const current = sessions.find((item) => item.current);
   const others = sessions.length - (current ? 1 : 0);
 
-  const closeOthers = async () => {
-    setRevoking(true);
+  const run = async (key: string, action: () => Promise<unknown>) => {
+    setBusy(key);
     setError(null);
     try {
-      await api("/api/me/sesiones", { method: "DELETE" });
+      await action();
       overview.reload();
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setRevoking(false);
+      setBusy(null);
     }
   };
 
@@ -54,19 +56,34 @@ export default function SeguridadPage() {
               <div className="listrow" key={passkey.id}>
                 <div>
                   <b>{passkey.deviceLabel}</b>
-                  <div className="muted">Último uso: {formatWhen(passkey.lastUsedAt)}</div>
+                  <div className="muted">
+                    Registrada {formatWhen(passkey.createdAt)} · Último uso: {formatWhen(passkey.lastUsedAt)}
+                  </div>
                 </div>
-                <span className="badge ok">Confiable</span>
+                <button
+                  className="btn ghost"
+                  disabled={busy !== null}
+                  onClick={() => run(passkey.id, () => api(`/api/passkeys/${passkey.id}`, { method: "DELETE" }))}
+                >
+                  Eliminar
+                </button>
               </div>
             ))}
             {!overview.loading && passkeys.length === 0 && (
               <div className="listrow">
                 <div>
                   <b>Sin passkeys registradas</b>
-                  <div className="muted">En esta demo la Passkey es simulada.</div>
+                  <div className="muted">Regístrala para entrar con Touch ID, Windows Hello o tu teléfono.</div>
                 </div>
               </div>
             )}
+            <button
+              className="btn primary"
+              disabled={busy !== null}
+              onClick={() => run("passkey", registerPasskey)}
+            >
+              <Fingerprint size={18} /> {busy === "passkey" ? "Esperando al dispositivo…" : "Registrar passkey en este dispositivo"}
+            </button>
             {current && (
               <>
                 <div className="listrow">
@@ -95,8 +112,8 @@ export default function SeguridadPage() {
               </div>
               <button
                 className="btn secondary"
-                onClick={closeOthers}
-                disabled={others === 0 || revoking}
+                onClick={() => run("revoke", () => api("/api/me/sesiones", { method: "DELETE" }))}
+                disabled={others === 0 || busy !== null}
               >
                 Cerrar otras sesiones
               </button>

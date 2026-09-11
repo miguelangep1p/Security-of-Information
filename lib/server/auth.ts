@@ -113,6 +113,15 @@ export async function requireRole(...roles: Role[]) {
 }
 
 async function findLoginUser(email: string) {
+  return findEnabledUser(email, null);
+}
+
+export async function findLoginUserById(userId: string) {
+  return findEnabledUser(null, userId);
+}
+
+// Usuario activo con al menos un vínculo habilitado, buscado por correo o por id.
+async function findEnabledUser(email: string | null, userId: string | null) {
   const [row] = await sql`
     select u.id, u.full_name, u.short_name, u.email, pp.cmp, pp.specialty,
            m.id as membership_id, m.role, i.name as institution
@@ -120,13 +129,18 @@ async function findLoginUser(email: string) {
     join memberships m  on m.user_id = u.id and m.status = 'Habilitado'
     join institutions i on i.id = m.institution_id
     left join professional_profiles pp on pp.user_id = u.id
-    where u.email = ${email} and u.is_active
+    where (u.email = ${email}::citext or u.id = ${userId}::uuid) and u.is_active
     order by m.created_at
     limit 1`;
   return row ?? null;
 }
 
-async function startSession(user: Row, authMethod: AuthMethod, metadata: Record<string, unknown>) {
+export async function startSession(
+  user: Row,
+  authMethod: AuthMethod,
+  metadata: Record<string, unknown>,
+  passkeyId: string | null = null,
+) {
   const token = randomBytes(32).toString("base64url");
   const sessionId = randomUUID();
   const ip = await requestIp();
@@ -134,9 +148,9 @@ async function startSession(user: Row, authMethod: AuthMethod, metadata: Record<
 
   await transaction(async (tx) => {
     await tx`
-      insert into sessions (id, token_hash, user_id, membership_id, auth_method, ip, user_agent, expires_at)
+      insert into sessions (id, token_hash, user_id, membership_id, auth_method, passkey_id, ip, user_agent, expires_at)
       values (${sessionId}, decode(${sha256Hex(token)}, 'hex'), ${user.id}, ${user.membership_id},
-              ${authMethod}, ${ip}, ${userAgent}, now() + ${`${SESSION_TTL_HOURS} hours`}::interval)`;
+              ${authMethod}, ${passkeyId}, ${ip}, ${userAgent}, now() + ${`${SESSION_TTL_HOURS} hours`}::interval)`;
     await audit(
       tx,
       { userId: user.id, cmp: user.cmp, sessionId, authMethod, ip, riskScore: 0 },
