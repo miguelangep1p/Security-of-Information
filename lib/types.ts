@@ -14,6 +14,8 @@ export type User = {
   council?: string;
 };
 
+export type MembershipStatus = "Habilitado" | "Pendiente" | "Suspendido";
+
 export type Session = {
   userId: string;
   name: string;
@@ -23,6 +25,7 @@ export type Session = {
   email: string;
   institution: string;
   cmp?: string;
+  membershipStatus: MembershipStatus;
 };
 
 export type ClinicalDoc = {
@@ -45,7 +48,7 @@ export type Professional = {
   cmp: string;
   institution: string;
   role: Role;
-  status: "Habilitado" | "Pendiente" | "Suspendido";
+  status: MembershipStatus;
 };
 
 export type AuditResult = "ALLOW" | "DENY" | "REVIEW";
@@ -169,7 +172,7 @@ export type HistoryDocument = {
 
 export type ClinicalRecordOption = { id: string; recordNumber: string; patient: string };
 
-export type Institution = { id: string; name: string };
+export type Institution = { id: string; name: string; kind?: string; city?: string };
 
 export type ServiceStatus = {
   service: string;

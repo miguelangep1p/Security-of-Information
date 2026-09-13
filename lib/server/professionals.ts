@@ -54,7 +54,7 @@ export async function listRoles(): Promise<RoleDefinition[]> {
 }
 
 // "Carlos Mendoza Salazar" → "Carlos Mendoza"; con cuatro palabras toma nombre y primer apellido.
-function shortNameOf(fullName: string) {
+export function shortNameOf(fullName: string) {
   const words = fullName.trim().split(/\s+/);
   if (words.length >= 4) return `${words[0]} ${words[2]}`;
   return words.slice(0, 2).join(" ");

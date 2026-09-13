@@ -4,8 +4,9 @@ import { isIP } from "node:net";
 import { cookies, headers } from "next/headers";
 import { audit, type Actor, type AuthMethod } from "@/lib/server/audit";
 import { sql, transaction, type Row } from "@/lib/server/db";
+import { otpEmail, sendEmail } from "@/lib/server/email";
 import { ApiError } from "@/lib/server/http";
-import type { Role, Session, User } from "@/lib/types";
+import type { MembershipStatus, Role, Session, User } from "@/lib/types";
 
 const SESSION_COOKIE = "nexo_session";
 const SESSION_TTL_HOURS = 8;
@@ -18,12 +19,13 @@ export type ServerSession = Session & {
   sessionId: string;
   membershipId: string;
   institutionId: string;
+  membershipStatus: MembershipStatus;
   authMethod: AuthMethod;
   riskScore: number;
   ip: string | null;
 };
 
-const sha256Hex = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
+export const sha256Hex = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
 
 export function initialsOf(name: string) {
   return name
@@ -54,9 +56,10 @@ export const publicSession = (session: ServerSession): Session => ({
   email: session.email,
   institution: session.institution,
   cmp: session.cmp,
+  membershipStatus: session.membershipStatus,
 });
 
-async function requestIp() {
+export async function requestIp() {
   const list = await headers();
   const candidate = list.get("x-forwarded-for")?.split(",")[0]?.trim() ?? list.get("x-real-ip");
   return candidate && isIP(candidate) ? candidate : null;
@@ -76,10 +79,10 @@ export async function getSession(): Promise<ServerSession | null> {
     )
     select a.id as session_id, a.membership_id, a.auth_method, a.risk_score,
            u.id as user_id, u.full_name, u.short_name, u.email,
-           m.role, m.institution_id, i.name as institution, pp.cmp
+           m.role, m.status as membership_status, m.institution_id, i.name as institution, pp.cmp
     from active a
     join users u        on u.id = a.user_id and u.is_active
-    join memberships m  on m.id = a.membership_id and m.status = 'Habilitado'
+    join memberships m  on m.id = a.membership_id
     join institutions i on i.id = m.institution_id
     left join professional_profiles pp on pp.user_id = u.id`;
   if (!row) return null;
@@ -88,6 +91,7 @@ export async function getSession(): Promise<ServerSession | null> {
     sessionId: row.session_id,
     membershipId: row.membership_id,
     institutionId: row.institution_id,
+    membershipStatus: row.membership_status,
     authMethod: row.auth_method,
     riskScore: row.risk_score,
     ip: await requestIp(),
@@ -102,12 +106,18 @@ export async function getSession(): Promise<ServerSession | null> {
   };
 }
 
-// Autorización en el servidor: sin roles solo exige sesión; con roles, exige uno de ellos.
+// Autorización en el servidor: sin roles solo exige sesión (autoservicio de cuenta, aún si está Pendiente).
+// Con roles, además exige que el vínculo institucional esté Habilitado.
 export async function requireRole(...roles: Role[]) {
   const session = await getSession();
   if (!session) throw new ApiError(401, "Tu sesión expiró. Inicia sesión nuevamente.");
-  if (roles.length > 0 && !roles.includes(session.role)) {
-    throw new ApiError(403, "Tu rol no tiene permiso para esta acción.");
+  if (roles.length > 0) {
+    if (session.membershipStatus !== "Habilitado") {
+      throw new ApiError(403, "Tu cuenta está pendiente de aprobación institucional.");
+    }
+    if (!roles.includes(session.role)) {
+      throw new ApiError(403, "Tu rol no tiene permiso para esta acción.");
+    }
   }
   return session;
 }
@@ -175,6 +185,8 @@ export async function startSession(
     email: user.email,
     institution: user.institution,
     cmp: user.cmp ?? undefined,
+    // Los flujos de login solo alcanzan usuarios Habilitado; el autorregistro pasa 'Pendiente' explícitamente.
+    membershipStatus: (user.membership_status as MembershipStatus | undefined) ?? "Habilitado",
   } satisfies Session;
 }
 
@@ -199,10 +211,8 @@ export async function requestEmailCode(rawEmail: string) {
     insert into email_otps (email, purpose, code_hash, expires_at)
     values (${email}, 'login', ${sha256Hex(`${email}:${code}`)}, now() + interval '10 minutes')`;
 
-  // No hay proveedor de correo configurado: fuera de producción el código se imprime en la consola.
-  if (demoMode() || process.env.NODE_ENV !== "production") {
-    console.info(`[nexo] Código de acceso para ${email}: ${code}`);
-  }
+  // En modo demo el código se muestra en pantalla; no depende de un proveedor de correo real.
+  if (!demoMode()) await sendEmail({ to: email, ...otpEmail(code) });
   return { devCode: demoMode() ? code : null };
 }
 

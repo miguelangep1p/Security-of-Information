@@ -13,6 +13,7 @@ export function toSession(user: User): Session {
     email: user.email,
     institution: user.institution,
     cmp: user.cmp,
+    membershipStatus: "Habilitado",
   };
 }
 
