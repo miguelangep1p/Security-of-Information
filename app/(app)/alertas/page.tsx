@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { SplitSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { formatWhen } from "@/lib/format";
 import type { AlertItem, AlertStatus } from "@/lib/types";
@@ -38,13 +39,15 @@ export default function AlertasPage() {
       <div className="pagehead">
         <div>
           <h1>Alertas</h1>
-          <p className="muted">Señales de riesgo, no un veredicto de identidad.</p>
+          <p className="muted">Señales de riesgo operativo.</p>
         </div>
       </div>
       <ErrorNote message={alerts.error ?? error} />
+      {alerts.loading && list.length === 0 ? (
+        <SplitSkeleton />
+      ) : (
       <div className="review-layout">
         <div className="panel">
-          {alerts.loading && list.length === 0 && <div className="empty">Cargando alertas…</div>}
           {list.map((item) => (
             <button
               key={item.id}
@@ -108,6 +111,7 @@ export default function AlertasPage() {
           </div>
         )}
       </div>
+      )}
     </>
   );
 }

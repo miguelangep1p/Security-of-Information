@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, LockKeyhole } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { TableSkeleton } from "@/components/Skeleton";
 import { useApi } from "@/lib/client/api";
 import { formatWhen } from "@/lib/format";
 import type { AuditEvent, AuditResult } from "@/lib/types";
@@ -35,11 +36,8 @@ export default function AuditoriaPage() {
       <div className="pagehead">
         <div>
           <h1>Auditoría</h1>
-          <p className="muted">Trazabilidad protegida de acciones relevantes.</p>
+          <p className="muted">Registro de acciones relevantes.</p>
         </div>
-        <span className="badge ok">
-          <LockKeyhole size={12} style={{ display: "inline" }} /> Registro protegido
-        </span>
       </div>
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <FilterButton
@@ -78,6 +76,9 @@ export default function AuditoriaPage() {
       </div>
       <ErrorNote message={audit.error} />
       <div className="panel">
+        {audit.loading && events.length === 0 ? (
+          <TableSkeleton columns={5} />
+        ) : (
         <table className="table">
           <thead>
             <tr>
@@ -108,6 +109,7 @@ export default function AuditoriaPage() {
             ))}
           </tbody>
         </table>
+        )}
         {current ? (
           <div className="transcription" style={{ background: "#f7f9f8" }}>
             <b>Detalle del evento</b>
@@ -141,7 +143,7 @@ export default function AuditoriaPage() {
             </div>
           </div>
         ) : (
-          <div className="empty">{audit.loading ? "Cargando eventos…" : "No hay eventos para estos filtros."}</div>
+          <div className="empty">No hay eventos para estos filtros.</div>
         )}
       </div>
     </>

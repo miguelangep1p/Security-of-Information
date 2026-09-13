@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, Check } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { RowsSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import type { ServiceStatus } from "@/lib/types";
 
@@ -33,21 +34,24 @@ export default function ConfiguracionPage() {
       <div className="pagehead">
         <div>
           <h1>Estado del sistema</h1>
-          <p className="muted">Disponibilidad y comportamiento resiliente.</p>
+          <p className="muted">Servicios y comportamiento ante fallos.</p>
         </div>
       </div>
       <ErrorNote message={services.error ?? error} />
       <div className="panel" style={{ maxWidth: 760 }}>
         <div className="transcription">
-          {services.loading && list.length === 0 && <p className="muted">Cargando servicios…</p>}
-          {list.map((item) => (
-            <div className="listrow" key={item.service}>
-              <b>{item.label}</b>
-              <span className={`badge ${item.operational ? "ok" : "bad"}`}>
-                {item.operational ? "Operativo" : "No disponible"}
-              </span>
-            </div>
-          ))}
+          {services.loading && list.length === 0 ? (
+            <RowsSkeleton rows={4} />
+          ) : (
+            list.map((item) => (
+              <div className="listrow" key={item.service}>
+                <b>{item.label}</b>
+                <span className={`badge ${item.operational ? "ok" : "bad"}`}>
+                  {item.operational ? "Operativo" : "No disponible"}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
       {!ai && (
@@ -72,8 +76,7 @@ export default function ConfiguracionPage() {
         </button>
       </div>
       <div className="subsection">
-        <h2>Seguridad de plataforma</h2>
-        <p className="muted">Vista técnica · Simulación de arquitectura de seguridad</p>
+        <h2>Controles de plataforma</h2>
         {[
           "Dependencias bloqueadas",
           "Dependency scanning",

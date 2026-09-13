@@ -34,9 +34,8 @@ export default function LandingPage() {
           <div className="eyebrow">Documentación clínica protegida</div>
           <h1>Digitalización clínica segura, validada por profesionales.</h1>
           <p>
-            La inteligencia artificial agiliza la transcripción. Tú conservas la
-            decisión clínica, con controles de seguridad que se adaptan al
-            riesgo y firma biométrica FIDO2.
+            La IA agiliza la transcripción. Tú conservas la decisión clínica, con
+            controles de seguridad y firma biométrica FIDO2.
           </p>
 
           <div className="hero-actions">

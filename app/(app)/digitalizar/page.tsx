@@ -103,7 +103,7 @@ export default function DigitalizarPage() {
       <div className="pagehead">
         <div>
           <h1>Digitalizar documento</h1>
-          <p className="muted">Carga segura y preparación para revisión médica.</p>
+          <p className="muted">Carga el archivo para enviarlo a revisión médica.</p>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ export default function DigitalizarPage() {
                     onChange={(e) => handleFiles(e.target.files)}
                   />
                   <p className="muted" style={{ fontSize: 11, marginTop: 16 }}>
-                    Máximo 4 MB · Datos ficticios para esta demo
+                    Máximo 4 MB
                   </p>
                 </div>
               </div>
@@ -268,7 +268,7 @@ export default function DigitalizarPage() {
                 {phase >= 4 && (
                   <>
                     <div className="verified" style={{ marginTop: 16 }}>
-                      <LockKeyhole size={18} /> El digitalizador no puede aprobar documentos; el médico decide.
+                      <LockKeyhole size={18} /> Enviado. El médico valida el contenido.
                     </div>
                     <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
                       <button className="btn secondary" onClick={reset}>

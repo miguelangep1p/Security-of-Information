@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LockKeyhole } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { TableSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { formatWhen } from "@/lib/format";
 import type { QueueItem, QueueStatus } from "@/lib/types";
@@ -37,7 +38,7 @@ export default function PendientesPage() {
       <div className="pagehead">
         <div>
           <h1>Pendientes</h1>
-          <p className="muted">Cola de documentos en preparación. No se puede aprobar desde aquí.</p>
+          <p className="muted">Cola de documentos en preparación.</p>
         </div>
       </div>
       <div
@@ -49,7 +50,7 @@ export default function PendientesPage() {
       <ErrorNote message={documents.error ?? error} />
       <div className="panel">
         {documents.loading && pending.length === 0 ? (
-          <div className="empty">Cargando documentos…</div>
+          <TableSkeleton columns={5} />
         ) : pending.length === 0 ? (
           <div className="empty">No hay documentos pendientes. Todo fue enviado a revisión.</div>
         ) : (

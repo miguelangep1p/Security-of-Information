@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { TableSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
 import { roleLabel } from "@/lib/nav";
@@ -41,7 +42,7 @@ export default function ProfesionalesPage() {
       <div className="pagehead">
         <div>
           <h1>Profesionales</h1>
-          <p className="muted">Gestión operativa sin acceso al contenido clínico.</p>
+          <p className="muted">Altas, habilitación y suspensión de cuentas.</p>
         </div>
         <button className="btn primary" onClick={() => router.push("/profesionales/nuevo")}>
           Registrar profesional
@@ -51,11 +52,13 @@ export default function ProfesionalesPage() {
         className="verified"
         style={{ background: "#f2f5f4", color: "var(--ink)", borderColor: "var(--line)" }}
       >
-        <ShieldCheck size={19} /> Separación de funciones: este rol no puede revisar ni aprobar
-        documentos clínicos.
+        <ShieldCheck size={19} /> Este rol no revisa ni aprueba documentos clínicos.
       </div>
       <ErrorNote message={professionals.error ?? error} />
       <div className="panel">
+        {professionals.loading && list.length === 0 ? (
+          <TableSkeleton columns={6} />
+        ) : (
         <table className="table">
           <thead>
             <tr>
@@ -109,7 +112,7 @@ export default function ProfesionalesPage() {
             ))}
           </tbody>
         </table>
-        {professionals.loading && list.length === 0 && <div className="empty">Cargando profesionales…</div>}
+        )}
       </div>
     </>
   );

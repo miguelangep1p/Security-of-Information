@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/PageTransition";
 import { SessionGuard } from "@/components/SessionGuard";
 import { Sidebar } from "@/components/Sidebar";
 
@@ -6,7 +7,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SessionGuard>
       <div className="app">
         <Sidebar />
-        <main className="main">{children}</main>
+        <main className="main">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
     </SessionGuard>
   );

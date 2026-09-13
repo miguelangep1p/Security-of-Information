@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldCheck } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { SplitSkeleton, TableSkeleton } from "@/components/Skeleton";
 import { useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
 import { authMethodLabel, formatWhen, shortHash } from "@/lib/format";
@@ -31,11 +31,15 @@ export default function HistorialPage() {
         <div className="pagehead">
           <div>
             <h1>Historial de digitalización</h1>
-            <p className="muted">Documentos enviados a revisión médica. No puedes aprobarlos.</p>
+            <p className="muted">Documentos enviados a revisión médica.</p>
           </div>
         </div>
         <ErrorNote message={sent.error} />
         <div className="panel">
+          {sent.loading && documents.length === 0 ? (
+            <TableSkeleton columns={4} />
+          ) : (
+            <>
           <table className="table">
             <thead>
               <tr>
@@ -61,11 +65,8 @@ export default function HistorialPage() {
           {!sent.loading && documents.length === 0 && (
             <div className="empty">Aún no enviaste documentos a revisión.</div>
           )}
-          <div className="transcription">
-            <div className="verified">
-              <ShieldCheck size={18} /> El digitalizador no valida contenido clínico.
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </>
     );
@@ -93,11 +94,13 @@ export default function HistorialPage() {
       </div>
       <ErrorNote message={history.error} />
       {!current ? (
-        <div className="panel" style={{ maxWidth: 700 }}>
-          <div className="empty">
-            {history.loading ? "Cargando historial…" : "Aún no hay documentos aprobados a los que tengas acceso."}
+        history.loading ? (
+          <SplitSkeleton />
+        ) : (
+          <div className="panel" style={{ maxWidth: 700 }}>
+            <div className="empty">Aún no hay documentos aprobados a los que tengas acceso.</div>
           </div>
-        </div>
+        )
       ) : (
         <div className="review-layout">
           <div className="panel">
@@ -127,9 +130,6 @@ export default function HistorialPage() {
                   </div>
                 ))}
               </div>
-              <div className="verified">
-                <ShieldCheck size={18} /> Storage privado · Cifrado en reposo · TLS
-              </div>
               <button className="btn secondary" onClick={() => setShowImmutableNote(true)}>
                 Crear nueva versión
               </button>
@@ -156,12 +156,6 @@ export default function HistorialPage() {
                     </div>
                   </div>
                 ))}
-              </div>
-              <div
-                className="verified"
-                style={{ background: "#fff7e7", borderColor: "#f1ddb4", color: "#745315" }}
-              >
-                Una versión aprobada no se puede sobrescribir.
               </div>
             </div>
           </div>

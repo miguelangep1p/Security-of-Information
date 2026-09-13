@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { TableSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
 import { roleLabel } from "@/lib/nav";
@@ -41,7 +42,7 @@ export default function RolesPage() {
       <div className="pagehead">
         <div>
           <h1>Roles</h1>
-          <p className="muted">Matriz de permisos y asignación operativa.</p>
+          <p className="muted">Permisos por rol y a quién se asignan.</p>
         </div>
       </div>
       <div
@@ -52,6 +53,9 @@ export default function RolesPage() {
       </div>
       <ErrorNote message={roles.error ?? professionals.error ?? error} />
       <div className="panel" style={{ marginBottom: 28 }}>
+        {roles.loading && !roles.data ? (
+          <TableSkeleton columns={6} rows={4} />
+        ) : (
         <table className="table">
           <thead>
             <tr>
@@ -81,12 +85,15 @@ export default function RolesPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
       <div className="panel">
         <div className="panel-head">
           <b>Asignar rol</b>
-          <span className="badge">Se aplica al instante</span>
         </div>
+        {professionals.loading && !professionals.data ? (
+          <TableSkeleton columns={3} rows={5} />
+        ) : (
         <table className="table">
           <thead>
             <tr>
@@ -117,6 +124,7 @@ export default function RolesPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
     </>
   );

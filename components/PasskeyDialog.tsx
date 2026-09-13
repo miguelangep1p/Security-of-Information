@@ -77,9 +77,6 @@ export function PasskeyDialog({
             </div>
             <h2>Identidad confirmada</h2>
             <p className="muted">Windows Hello se usó como dispositivo confiable.</p>
-            <div className="verified">
-              <Check size={18} /> Dispositivo confiable
-            </div>
             <button className="btn primary" style={{ width: "100%" }} onClick={onDone}>
               Listo
             </button>

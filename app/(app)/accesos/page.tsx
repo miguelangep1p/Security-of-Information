@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { TableSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { formatWhen } from "@/lib/format";
 import type { AccessRequest, AccessStatus } from "@/lib/types";
@@ -41,11 +42,14 @@ export default function AccesosPage() {
       <div className="pagehead">
         <div>
           <h1>Accesos excepcionales</h1>
-          <p className="muted">Solicitudes break-glass con ventana temporal y justificación.</p>
+          <p className="muted">Solicitudes de emergencia con ventana temporal.</p>
         </div>
       </div>
       <ErrorNote message={requests.error ?? error} />
       <div className="panel" style={{ marginBottom: 22 }}>
+        {requests.loading && list.length === 0 ? (
+          <TableSkeleton columns={4} />
+        ) : (
         <table className="table">
           <thead>
             <tr>
@@ -72,7 +76,7 @@ export default function AccesosPage() {
             ))}
           </tbody>
         </table>
-        {requests.loading && list.length === 0 && <div className="empty">Cargando solicitudes…</div>}
+        )}
       </div>
       {current && (
         <div className="panel" style={{ maxWidth: 760 }}>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { DashboardSkeleton, RowsSkeleton } from "@/components/Skeleton";
 import { useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
 import { actionLabel, formatToday, formatWhen } from "@/lib/format";
@@ -33,44 +34,34 @@ export default function InicioPage() {
 
   if (isAdmin) {
     const list = professionals.data?.professionals ?? [];
+    if (professionals.loading && !professionals.data) return <DashboardSkeleton />;
     return (
       <>
         <div className="pagehead">
           <div>
-            <p className="muted" style={{ margin: 0 }}>
-              Administración operativa
-            </p>
             <h1>Hola, {session.shortName.split(" ")[0]}.</h1>
-            <p className="muted">Gestiona profesionales sin acceder a contenido clínico.</p>
+            <p className="muted">Altas y habilitación de profesionales.</p>
           </div>
-          <span className="badge ok">
-            <ShieldCheck size={13} style={{ display: "inline" }} /> Sesión protegida
-          </span>
         </div>
         <ErrorNote message={professionals.error} />
         <div className="stats">
           <div className="stat">
-            <strong>{professionals.loading ? "…" : list.length}</strong>
+            <strong>{list.length}</strong>
             <span className="muted">Profesionales</span>
           </div>
           <div className="stat">
-            <strong>{professionals.loading ? "…" : list.filter((p) => p.status === "Pendiente").length}</strong>
+            <strong>{list.filter((p) => p.status === "Pendiente").length}</strong>
             <span className="muted">Pendientes de alta</span>
           </div>
           <div className="stat">
-            <strong>
-              {professionals.loading
-                ? "…"
-                : list.filter((p) => p.role === "MÉDICO" && p.status === "Habilitado").length}
-            </strong>
+            <strong>{list.filter((p) => p.role === "MÉDICO" && p.status === "Habilitado").length}</strong>
             <span className="muted">Médicos habilitados</span>
           </div>
         </div>
         <div className="feature">
           <div>
-            <div className="eyebrow">Tu tarea principal</div>
             <h2>Revisar altas profesionales</h2>
-            <p className="muted">Este rol no puede revisar ni aprobar documentos clínicos.</p>
+            <p className="muted">Este rol no accede a documentos clínicos.</p>
           </div>
           <button className="btn primary" onClick={() => router.push("/profesionales")}>
             Ver profesionales <ArrowRight size={18} />
@@ -80,14 +71,13 @@ export default function InicioPage() {
     );
   }
 
+  if (queue.loading && !queue.data) return <DashboardSkeleton />;
+
   const items = queue.data?.items ?? [];
   const attentionDocs = items.filter((item) => item.restricted || item.lowFields.length > 0);
   const nextItem = items.find((item) => !item.restricted);
-  const pendingText = queue.loading
-    ? "Cargando tu cola de revisión…"
-    : items.length === 1
-      ? "Tienes 1 transcripción pendiente."
-      : `Tienes ${items.length} transcripciones pendientes.`;
+  const pendingText =
+    items.length === 1 ? "Tienes 1 transcripción pendiente." : `Tienes ${items.length} transcripciones pendientes.`;
 
   return (
     <>
@@ -101,30 +91,26 @@ export default function InicioPage() {
           </h1>
           <p className="muted">{pendingText}</p>
         </div>
-        <span className="badge ok">
-          <ShieldCheck size={13} style={{ display: "inline" }} /> Sesión protegida
-        </span>
       </div>
       <ErrorNote message={queue.error} />
       <div className="stats">
         <div className="stat">
-          <strong>{queue.loading ? "…" : items.length}</strong>
+          <strong>{items.length}</strong>
           <span className="muted">Pendientes de revisión</span>
         </div>
         <div className="stat">
-          <strong>{queue.loading ? "…" : attentionDocs.length}</strong>
+          <strong>{attentionDocs.length}</strong>
           <span className="muted">Requieren atención</span>
         </div>
         <div className="stat">
-          <strong>{queue.loading ? "…" : (queue.data?.approvedToday ?? 0)}</strong>
+          <strong>{queue.data?.approvedToday ?? 0}</strong>
           <span className="muted">Validadas hoy</span>
         </div>
       </div>
       <div className="feature">
         <div>
-          <div className="eyebrow">Tu tarea principal</div>
-          <h2>Revisar transcripciones clínicas</h2>
-          <p className="muted">Compara el documento original con la propuesta de IA.</p>
+          <h2>Revisar transcripciones</h2>
+          <p className="muted">Compara el original con la propuesta de IA.</p>
         </div>
         <button className="btn primary" onClick={() => router.push("/revision")}>
           Comenzar revisión <ArrowRight size={18} />
@@ -152,9 +138,7 @@ export default function InicioPage() {
             <span className="badge warn">{attentionDocs.length} pendientes</span>
           </div>
           <div className="transcription">
-            {attentionDocs.length === 0 && !queue.loading && (
-              <p className="muted">No hay documentos que requieran atención.</p>
-            )}
+            {attentionDocs.length === 0 && <p className="muted">Nada requiere atención ahora.</p>}
             {attentionDocs.map((doc) => (
               <div className="listrow" key={doc.versionId}>
                 <div>
@@ -178,15 +162,21 @@ export default function InicioPage() {
             <b>Actividad reciente</b>
           </div>
           <div className="transcription">
-            {(activity.data?.activity ?? []).map((item) => (
-              <div className="listrow" key={item.id}>
-                <span>
-                  {actionLabel[item.action] ?? item.action} · {item.resource}
-                </span>
-                <span className="muted">{formatWhen(item.occurredAt)}</span>
-              </div>
-            ))}
-            {activity.data?.activity.length === 0 && <p className="muted">Sin actividad registrada.</p>}
+            {activity.loading && !activity.data ? (
+              <RowsSkeleton rows={3} />
+            ) : (
+              <>
+                {(activity.data?.activity ?? []).map((item) => (
+                  <div className="listrow" key={item.id}>
+                    <span>
+                      {actionLabel[item.action] ?? item.action} · {item.resource}
+                    </span>
+                    <span className="muted">{formatWhen(item.occurredAt)}</span>
+                  </div>
+                ))}
+                {activity.data?.activity.length === 0 && <p className="muted">Sin actividad registrada.</p>}
+              </>
+            )}
           </div>
         </div>
       </div>

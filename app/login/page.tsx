@@ -174,10 +174,9 @@ export default function LoginPage() {
           <h2 className="aside-title">
             Digitalización clínica con seguridad institucional.
           </h2>
-          <p className="aside-desc">
-            Autenticación robusta basada en roles, biometría FIDO2 sin contraseñas
-            y trazabilidad inmutable en cada registro asistido.
-          </p>
+              <p className="aside-desc">
+                Acceso por rol, biometría FIDO2 y trazabilidad en cada registro.
+              </p>
 
           <div className="aside-features">
             <div className="aside-feature-item">
@@ -286,10 +285,7 @@ export default function LoginPage() {
                 <ShieldCheck size={15} /> Acceso institucional
               </div>
               <h1>Iniciar sesión</h1>
-              <p>
-                Ingresa con tu correo institucional. Verificamos tu identidad con
-                Passkey biométrico o un código de acceso de un solo uso.
-              </p>
+              <p>Correo institucional, Passkey o código de un solo uso.</p>
             </div>
           ) : (
             <div className="login-header">
@@ -339,7 +335,20 @@ export default function LoginPage() {
 
               {/* Grid de Personas de Prueba */}
               <div className="persona-grid">
-                {demo.loading && <p className="muted">Cargando perfiles…</p>}
+                {demo.loading &&
+                  [0, 1, 2, 3].map((i) => (
+                    <div className="persona-card" key={i} aria-hidden="true">
+                      <div className="persona-header">
+                        <span className="skel" style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <span className="skel" style={{ width: "70%", height: 13, marginBottom: 8 }} />
+                          <span className="skel" style={{ width: "46%", height: 18, borderRadius: 99 }} />
+                        </div>
+                      </div>
+                      <span className="skel" style={{ width: "80%", height: 11, marginBottom: 14 }} />
+                      <span className="skel" style={{ width: "100%", height: 38, borderRadius: 8 }} />
+                    </div>
+                  ))}
                 {filteredUsers.map((user) => {
                   const RoleIcon = roleIcons[user.role];
                   const avatarColor = roleAvatarColors[user.role];
@@ -416,9 +425,7 @@ export default function LoginPage() {
                   color: "var(--muted)",
                 }}
               >
-                <span>
-                  💡 <b>Tip de evaluación:</b> Puedes ingresar con un clic o probar la simulación biométrica FIDO2.
-                </span>
+                <span>Ingresa con un clic o valida por biometría.</span>
                 <span
                   style={{
                     color: "var(--teal)",
@@ -474,7 +481,7 @@ export default function LoginPage() {
                       cursor: "pointer",
                     }}
                   >
-                    <Sparkles size={13} /> ¿Solo quieres probar? Autocompletar con un usuario de prueba
+                    <Sparkles size={13} /> Rellenar con un usuario de prueba
                   </button>
                 ))}
 
@@ -643,7 +650,7 @@ export default function LoginPage() {
                   gap: 6,
                 }}
               >
-                <Lock size={13} /> Conexión institucional cifrada de extremo a extremo
+                <Lock size={13} /> Conexión cifrada
               </div>
             </div>
           )}
@@ -668,7 +675,7 @@ export default function LoginPage() {
                   cursor: "pointer",
                 }}
               >
-                <Users size={13} /> ¿Solo quieres explorar la plataforma? Usar un perfil de demostración
+                <Users size={13} /> Usar un perfil de demostración
               </button>
             </div>
           )}

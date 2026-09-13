@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Fingerprint } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { RowsSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { registerPasskey } from "@/lib/client/passkeys";
 import { useSession } from "@/lib/client/session";
@@ -52,6 +53,10 @@ export default function SeguridadPage() {
             </span>
           </div>
           <div className="transcription">
+            {overview.loading && !overview.data ? (
+              <RowsSkeleton rows={4} />
+            ) : (
+              <>
             {passkeys.map((passkey) => (
               <div className="listrow" key={passkey.id}>
                 <div>
@@ -118,6 +123,8 @@ export default function SeguridadPage() {
                 Cerrar otras sesiones
               </button>
             </div>
+              </>
+            )}
           </div>
         </div>
         <div className="panel">
@@ -125,6 +132,10 @@ export default function SeguridadPage() {
             <b>Actividad reciente</b>
           </div>
           <div className="transcription">
+            {overview.loading && !overview.data ? (
+              <RowsSkeleton rows={4} />
+            ) : (
+              <>
             {(overview.data?.activity ?? []).map((item) => (
               <div className="listrow" key={item.id}>
                 <span>
@@ -136,6 +147,8 @@ export default function SeguridadPage() {
             <p className="muted" style={{ fontSize: 12 }}>
               Cuenta: {session.email}
             </p>
+              </>
+            )}
           </div>
         </div>
       </div>

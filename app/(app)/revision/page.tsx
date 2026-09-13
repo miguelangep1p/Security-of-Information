@@ -12,6 +12,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
+import { SplitSkeleton } from "@/components/Skeleton";
 import { api, useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
 import { describeDevice, formatWhen } from "@/lib/format";
@@ -133,7 +134,7 @@ export default function RevisionPage() {
             <div className="eyebrow">Lote finalizado</div>
             <h1>Revisión completada</h1>
             <p className="muted">
-              La revisión positiva aún no es una aprobación clínica definitiva.
+              La aprobación clínica se confirma en el siguiente paso.
             </p>
           </div>
         </div>
@@ -223,23 +224,20 @@ export default function RevisionPage() {
           </div>
         </div>
         <ErrorNote message={queue.error} />
+        {queue.loading ? (
+          <SplitSkeleton />
+        ) : (
         <div className="split-grid">
           <div className="panel">
             <div className="empty">
-              {queue.loading ? (
-                <p className="muted">Cargando cola de revisión…</p>
-              ) : (
-                <>
-                  <div className="state-icon ok">
-                    <Check size={26} />
-                  </div>
-                  <h2>No hay transcripciones pendientes</h2>
-                  <p>Cuando Digitalización envíe documentos, aparecerán aquí para tu validación.</p>
-                  <button className="btn secondary" onClick={continueReviewing}>
-                    <RefreshCw size={16} /> Actualizar
-                  </button>
-                </>
-              )}
+              <div className="state-icon ok">
+                <Check size={26} />
+              </div>
+              <h2>No hay transcripciones pendientes</h2>
+              <p>Cuando Digitalización envíe documentos, aparecerán aquí.</p>
+              <button className="btn secondary" onClick={continueReviewing}>
+                <RefreshCw size={16} /> Actualizar
+              </button>
             </div>
           </div>
 
@@ -262,6 +260,7 @@ export default function RevisionPage() {
             </div>
           </div>
         </div>
+        )}
       </>
     );
   }
@@ -494,17 +493,6 @@ function AccessModal({
             <p className="muted">
               No existe una relación asistencial activa con este paciente. Recurso {item.recordNumber}.
             </p>
-            <div
-              className="verified"
-              style={{
-                background: "#f3f5f4",
-                color: "#44514d",
-                borderColor: "var(--line)",
-                fontSize: 12,
-              }}
-            >
-              RBAC: PASS · ABAC: DENY · Relationship: NONE
-            </div>
             <button className="btn secondary" onClick={onSkip}>
               Omitir documento
             </button>{" "}
