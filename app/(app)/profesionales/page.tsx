@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
 import { TableSkeleton } from "@/components/Skeleton";
+import { Toast } from "@/components/Toast";
 import { api, useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
+import { useFlash } from "@/lib/client/useFlash";
 import { roleLabel } from "@/lib/nav";
 import type { Professional } from "@/lib/types";
 
@@ -22,6 +24,7 @@ export default function ProfesionalesPage() {
   const professionals = useApi<{ professionals: Professional[] }>("/api/profesionales");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [note, flash] = useFlash();
   const list = professionals.data?.professionals ?? [];
 
   const setStatus = async (id: string, status: "Habilitado" | "Suspendido") => {
@@ -37,8 +40,28 @@ export default function ProfesionalesPage() {
     }
   };
 
+  const grantAllRecords = async (item: Professional) => {
+    setBusyId(item.id);
+    setError(null);
+    try {
+      const { granted } = await api<{ granted: number }>(`/api/profesionales/${item.id}/accesos`, {
+        method: "POST",
+      });
+      flash(
+        granted > 0
+          ? `${item.name} ahora tiene acceso a ${granted} historia${granted === 1 ? "" : "s"} clínica${granted === 1 ? "" : "s"} más.`
+          : `${item.name} ya tenía acceso a todo el historial actual.`,
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <>
+      <Toast message={note} />
       <div className="pagehead">
         <div>
           <h1>Profesionales</h1>
@@ -88,7 +111,17 @@ export default function ProfesionalesPage() {
                     {item.cmp !== "—" && item.status === "Habilitado" ? " · CMP verificado" : ""}
                   </span>
                 </td>
-                <td>
+                <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {item.role === "MÉDICO" && (
+                    <button
+                      className="btn secondary"
+                      disabled={busyId === item.id}
+                      onClick={() => grantAllRecords(item)}
+                      title="Le da relación asistencial con todos los pacientes que ya existen en su institución, sin pedirle que solicite acceso de emergencia por cada uno."
+                    >
+                      {busyId === item.id ? "Otorgando…" : "Otorgar acceso a todo el historial actual"}
+                    </button>
+                  )}
                   {item.userId !== session?.userId &&
                     (item.status === "Habilitado" ? (
                       <button

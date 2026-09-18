@@ -6,7 +6,7 @@ import { decideAccessRequest } from "@/lib/server/oversight";
 const body = z.object({ decision: z.enum(["aprobar", "denegar", "revocar"]) });
 
 export const PATCH = route(async (request, context: IdContext) => {
-  const session = await requireRole("AUDITOR");
+  const session = await requireRole("ADMIN");
   const id = await readId(context);
   const { decision } = await readJson(request, body);
   await decideAccessRequest(session, id, decision);

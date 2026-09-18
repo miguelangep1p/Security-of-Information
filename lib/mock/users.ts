@@ -28,7 +28,7 @@ export const users: User[] = [
     name: "Luis Paredes Ortiz",
     shortName: "Luis Paredes",
     initials: "LP",
-    role: "AUDITOR",
+    role: "ADMIN",
     email: "l.paredes@hospitaldemo.pe",
     institution: "Hospital Regional Demo",
     cmp: "059310",

@@ -362,9 +362,15 @@ textarea:focus-visible {
   color: #082d28;
 }
 .onboard-main {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 55px 30px;
+}
+.onboard-top-nav {
+  position: absolute;
+  top: 24px;
+  left: 32px;
 }
 .form-card {
   width: min(570px, 100%);

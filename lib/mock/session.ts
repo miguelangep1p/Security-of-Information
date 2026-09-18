@@ -21,8 +21,6 @@ export function homePath(role: Role) {
   switch (role) {
     case "ADMIN":
       return "/profesionales";
-    case "AUDITOR":
-      return "/auditoria";
     case "DIGITALIZADOR":
       return "/digitalizar";
     default:

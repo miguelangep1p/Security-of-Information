@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   Building2,
   Check,
@@ -215,6 +216,11 @@ export default function RegistroPage() {
         </p>
       </aside>
       <main className="onboard-main">
+        <div className="onboard-top-nav">
+          <button type="button" className="btn ghost" onClick={() => router.push("/")}>
+            <ArrowLeft size={16} /> Volver al inicio
+          </button>
+        </div>
         <section className="form-card pulse" key={step}>
           {step === 1 && (
             <>

@@ -17,7 +17,7 @@ const body = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   institutionId: z.uuid(),
-  role: z.enum(["MÉDICO", "ADMIN", "AUDITOR", "DIGITALIZADOR"]),
+  role: z.enum(["MÉDICO", "ADMIN", "DIGITALIZADOR"]),
 });
 
 export const POST = route(async (request) => {

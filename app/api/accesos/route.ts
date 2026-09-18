@@ -4,7 +4,7 @@ import { readJson, route } from "@/lib/server/http";
 import { listAccessRequests, requestEmergencyAccess } from "@/lib/server/oversight";
 
 export const GET = route(async () => {
-  await requireRole("AUDITOR");
+  await requireRole("ADMIN");
   return Response.json({ requests: await listAccessRequests() });
 });
 

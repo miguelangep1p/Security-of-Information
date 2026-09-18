@@ -13,9 +13,11 @@ import {
 } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
 import { SplitSkeleton } from "@/components/Skeleton";
+import { Toast } from "@/components/Toast";
 import { api, useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
-import { describeDevice, formatWhen } from "@/lib/format";
+import { useFlash } from "@/lib/client/useFlash";
+import { describeDevice } from "@/lib/format";
 import type { AccessReason, AccessStatus, ReviewField, ReviewItem, ReviewQueue } from "@/lib/types";
 
 const BATCH_SIZE = 3;
@@ -66,6 +68,7 @@ export default function RevisionPage() {
   const [risk, setRisk] = useState(false);
   const [riskModal, setRiskModal] = useState(false);
   const [riskReason, setRiskReason] = useState("Dispositivo o patrón de uso no habitual");
+  const [savedNote, flashSaved] = useFlash();
   const decisionTimes = useRef<number[]>([]);
 
   const all = queue.data?.items ?? [];
@@ -87,6 +90,11 @@ export default function RevisionPage() {
     const next = [...decisions, { item, corrected }];
     setDecisions(next);
     setDraft(null);
+    flashSaved(
+      corrected
+        ? `Corrección de ${item.recordNumber} guardada en el lote (${next.length}/${BATCH_SIZE})`
+        : `${item.recordNumber} marcado como correcto (${next.length}/${BATCH_SIZE})`,
+    );
     if (next.length >= BATCH_SIZE || remaining.length <= 1) setSummary(true);
   };
 
@@ -269,6 +277,7 @@ export default function RevisionPage() {
 
   return (
     <>
+      <Toast message={savedNote} />
       <div className="pagehead">
         <div>
           <h1>Revisión clínica</h1>
@@ -292,24 +301,24 @@ export default function RevisionPage() {
             <b>Documento original</b>
             <span className="badge">{d.restricted ? "Restringido" : "Escaneo"}</span>
           </div>
-          <div className="scan">
-            <h3>{session?.institution.toUpperCase()}</h3>
-            {d.restricted ? (
+          {d.restricted ? (
+            <div className="scan">
+              <h3>{session?.institution.toUpperCase()}</h3>
               <p>Contenido protegido · {d.recordNumber}</p>
-            ) : (
-              <>
-                <p>Paciente: {d.patient}</p>
-                <p>Enviado: {formatWhen(d.sentAt)}</p>
-                <hr />
-                <p>Rp.</p>
-                <p style={{ fontSize: 24, fontStyle: "italic" }}>{d.med || "—"}</p>
-                <p>
-                  {d.dose || "—"} — {d.freq || "—"}
-                </p>
-                <p>Durante {d.duration || "—"}</p>
-              </>
-            )}
-          </div>
+            </div>
+          ) : d.hasImage ? (
+            <iframe
+              key={d.documentId}
+              src={`/api/documentos/${d.documentId}/imagen`}
+              title={`Documento original · ${d.recordNumber}`}
+              style={{ width: "100%", aspectRatio: "210 / 297", border: 0, display: "block" }}
+            />
+          ) : (
+            <div className="scan">
+              <h3>{session?.institution.toUpperCase()}</h3>
+              <p>Sin archivo original guardado · {d.recordNumber}</p>
+            </div>
+          )}
         </div>
         <div className="panel">
           <div className="panel-head">
@@ -532,6 +541,9 @@ function AccessModal({
             >
               Solicitar acceso excepcional
             </button>
+            <button className="btn ghost" style={{ width: "100%" }} onClick={() => setEmergency(false)}>
+              Cancelar
+            </button>
           </>
         ) : (
           <>
@@ -542,6 +554,9 @@ function AccessModal({
             <p className="muted">Este acceso será temporal y el evento quedará auditado.</p>
             <button className="btn primary" style={{ width: "100%" }} disabled={busy} onClick={submit}>
               {busy ? "Registrando…" : "Confirmar con Passkey"}
+            </button>
+            <button className="btn ghost" style={{ width: "100%" }} disabled={busy} onClick={() => setAuth(false)}>
+              Cancelar
             </button>
           </>
         )}

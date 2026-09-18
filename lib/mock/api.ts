@@ -17,8 +17,7 @@ export function listRoles() {
 
 const roleRoutes: Record<Role, string[]> = {
   MÉDICO: ["/inicio", "/revision", "/historial", "/seguridad"],
-  ADMIN: ["/inicio", "/profesionales", "/roles", "/configuracion"],
-  AUDITOR: ["/auditoria", "/alertas", "/accesos"],
+  ADMIN: ["/inicio", "/profesionales", "/roles", "/configuracion", "/auditoria", "/alertas", "/accesos"],
   DIGITALIZADOR: ["/digitalizar", "/pendientes", "/historial"],
 };
 

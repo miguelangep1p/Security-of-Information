@@ -1,4 +1,4 @@
-export type Role = "MÉDICO" | "ADMIN" | "AUDITOR" | "DIGITALIZADOR";
+export type Role = "MÉDICO" | "ADMIN" | "DIGITALIZADOR";
 
 export type User = {
   id: string;
@@ -142,6 +142,7 @@ export type ReviewItem = {
   confidence: number | null;
   lowFields: ReviewField[];
   restricted: boolean;
+  hasImage: boolean;
   sentAt: string;
 };
 
@@ -210,4 +211,33 @@ export type SecurityOverview = {
   sessions: SessionInfo[];
   passkeys: PasskeyInfo[];
   activity: ActivityItem[];
+};
+
+// ─── Migración masiva de actas ──────────────────────────────────────────────
+
+export type Patient = { id: string; fullName: string; dni?: string; birthDate?: string };
+
+export type PatientMatch = Patient & { hasRecordHere: boolean };
+
+export type MigrationItemStatus = "pendiente" | "analizado" | "vinculado" | "creado" | "descartado";
+
+export type MigrationItem = {
+  id: string;
+  batchId: string;
+  filename: string;
+  status: MigrationItemStatus;
+  ocrPatientName?: string;
+  ocrPatientDni?: string;
+  ocrDocumentKind?: string;
+  ocrConfidence?: number;
+  suggestedPatient?: PatientMatch;
+  matchedPatientId?: string;
+  matchedClinicalRecordId?: string;
+  resultingDocumentId?: string;
+};
+
+export type MigrationBatch = {
+  id: string;
+  createdAt: string;
+  itemCounts: Record<MigrationItemStatus, number>;
 };

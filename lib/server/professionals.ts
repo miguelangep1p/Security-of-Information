@@ -99,6 +99,44 @@ export async function createProfessional(session: ServerSession, input: NewProfe
   });
 }
 
+// Atajo administrativo: en vez de que el médico pida acceso de emergencia paciente por
+// paciente, el admin le otorga de una vez relación asistencial con todo el historial ya
+// existente de su institución. Mismo criterio de backfillCareRelationships (lib/server/patients.ts):
+// el MVP prioriza simplicidad sobre mínimo privilegio. Omite pacientes que ya tienen relación activa.
+export async function grantAllRecordsToProfessional(session: ServerSession, membershipId: string) {
+  const [membership] = await sql`
+    select m.user_id, m.role, m.institution_id, u.email
+    from memberships m join users u on u.id = m.user_id
+    where m.id = ${membershipId}`;
+  if (!membership) throw new ApiError(404, "Profesional no encontrado.");
+  if (membership.role !== "MÉDICO") {
+    throw new ApiError(422, "Solo los médicos necesitan relación asistencial con los pacientes.");
+  }
+
+  return transaction(async (tx) => {
+    const granted = await tx`
+      insert into care_relationships (professional_id, patient_id, institution_id)
+      select ${membership.user_id}, cr.patient_id, cr.institution_id
+      from clinical_records cr
+      where cr.institution_id = ${membership.institution_id}
+        and not exists (
+          select 1 from care_relationships rel
+          where rel.professional_id = ${membership.user_id}
+            and rel.patient_id = cr.patient_id
+            and rel.ended_at is null
+        )
+      returning id`;
+    await audit(tx, actorOf(session), {
+      action: "CARE_RELATIONSHIP_BULK_GRANT",
+      resourceType: "membership",
+      resourceRef: membership.email,
+      result: "ALLOW",
+      metadata: { institutionId: membership.institution_id, patientsGranted: granted.length },
+    });
+    return { granted: granted.length };
+  });
+}
+
 export async function updateProfessional(
   session: ServerSession,
   membershipId: string,

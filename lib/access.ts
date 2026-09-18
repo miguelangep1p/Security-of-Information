@@ -3,8 +3,7 @@ import type { Role } from "@/lib/types";
 // Solo navegación: la autorización real la aplica cada Route Handler con requireRole().
 const roleRoutes: Record<Role, string[]> = {
   MÉDICO: ["/inicio", "/revision", "/historial", "/seguridad"],
-  ADMIN: ["/inicio", "/profesionales", "/roles", "/configuracion"],
-  AUDITOR: ["/auditoria", "/alertas", "/accesos"],
+  ADMIN: ["/inicio", "/profesionales", "/roles", "/configuracion", "/auditoria", "/alertas", "/accesos"],
   DIGITALIZADOR: ["/digitalizar", "/pendientes", "/historial"],
 };
 
@@ -16,8 +15,6 @@ export function homePath(role: Role) {
   switch (role) {
     case "ADMIN":
       return "/profesionales";
-    case "AUDITOR":
-      return "/auditoria";
     case "DIGITALIZADOR":
       return "/digitalizar";
     default:

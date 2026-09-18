@@ -43,9 +43,11 @@ export async function listReviewQueue(session: ServerSession): Promise<ReviewQue
       select q.version_id, q.document_id, q.clinical_record_id, q.record_number, q.patient, q.confidence,
              q.low_confidence_fields, q.sent_to_review_at,
              can_access_record(${session.userId}, q.clinical_record_id) as allowed,
+             (doc.bytes is not null) as has_image,
              i.medication, i.dose, i.frequency, i.duration
       from review_queue_view q
       join clinical_records cr on cr.id = q.clinical_record_id
+      join documents doc on doc.id = q.document_id
       left join prescription_items i on i.version_id = q.version_id and i.position = 1
       where cr.institution_id = ${session.institutionId}
       order by q.sent_to_review_at, q.record_number`,
@@ -74,6 +76,7 @@ export async function listReviewQueue(session: ServerSession): Promise<ReviewQue
         ? []
         : (row.low_confidence_fields as (keyof typeof FIELD_FROM_DB)[]).map((field) => FIELD_FROM_DB[field]),
       restricted,
+      hasImage: !restricted && row.has_image,
       sentAt: row.sent_to_review_at,
     };
   });
@@ -114,19 +117,24 @@ export async function approveTranscription(
       select medication, dose, frequency, duration from prescription_items
       where version_id = ${versionId} order by position`
   ).map(toPrescription);
-  if (current.length === 0) throw new ApiError(422, "La transcripción no tiene medicamentos.");
+  if (current.length === 0 && !corrections) {
+    throw new ApiError(422, "La transcripción no tiene medicamentos. Complétalos con Corregir antes de validar.");
+  }
 
-  const next = current.map((item, index) => {
-    if (index > 0 || !corrections) return item;
-    const trimmed = Object.fromEntries(
-      Object.entries(corrections).map(([key, value]) => [key, value?.trim()]),
-    ) as Partial<Prescription>;
-    return { ...item, ...trimmed };
-  });
+  const trimmed = corrections
+    ? (Object.fromEntries(
+        Object.entries(corrections).map(([key, value]) => [key, value?.trim()]),
+      ) as Partial<Prescription>)
+    : undefined;
+  // Sin IA (current vacío), la corrección crea el primer ítem en vez de fusionarse con uno existente.
+  const next =
+    current.length > 0
+      ? current.map((item, index) => (index === 0 && trimmed ? { ...item, ...trimmed } : item))
+      : [{ medication: "", dose: "", frequency: "", duration: "", ...trimmed } as Prescription];
   if (next.some((item) => PRESCRIPTION_KEYS.some((key) => !item[key]?.trim()))) {
     throw new ApiError(422, "Completa todos los campos de la receta antes de validar.");
   }
-  const changed = next.some((item, i) => PRESCRIPTION_KEYS.some((key) => item[key] !== current[i]![key]));
+  const changed = current.length === 0 || next.some((item, i) => PRESCRIPTION_KEYS.some((key) => item[key] !== current[i]![key]));
   const hash = prescriptionHash(next);
 
   return transaction(async (tx) => {

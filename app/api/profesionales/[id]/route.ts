@@ -5,7 +5,7 @@ import { updateProfessional } from "@/lib/server/professionals";
 
 const body = z
   .object({
-    role: z.enum(["MÉDICO", "ADMIN", "AUDITOR", "DIGITALIZADOR"]).optional(),
+    role: z.enum(["MÉDICO", "ADMIN", "DIGITALIZADOR"]).optional(),
     status: z.enum(["Habilitado", "Suspendido"]).optional(),
   })
   .refine((patch) => patch.role || patch.status, "Indica role o status.");

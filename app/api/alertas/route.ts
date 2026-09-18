@@ -3,6 +3,6 @@ import { route } from "@/lib/server/http";
 import { listAlerts } from "@/lib/server/oversight";
 
 export const GET = route(async () => {
-  await requireRole("AUDITOR");
+  await requireRole("ADMIN");
   return Response.json({ alerts: await listAlerts() });
 });

@@ -11,7 +11,7 @@ const body = z
   .refine((patch) => patch.status || patch.take, "Indica status o take.");
 
 export const PATCH = route(async (request, context: IdContext) => {
-  const session = await requireRole("AUDITOR");
+  const session = await requireRole("ADMIN");
   const id = await readId(context);
   await updateAlert(session, id, await readJson(request, body));
   return Response.json({ ok: true });

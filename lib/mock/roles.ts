@@ -16,25 +16,14 @@ export const roleDefinitions: RoleDefinition[] = [
   {
     role: "ADMIN",
     label: "Administrador",
-    description: "Gestiona profesionales y configuración. Sin acceso clínico.",
-    permissions: {
-      reviewClinical: false,
-      approveClinical: false,
-      digitize: false,
-      viewAudit: false,
-      manageUsers: true,
-    },
-  },
-  {
-    role: "AUDITOR",
-    label: "Auditor",
-    description: "Supervisa trazabilidad, alertas y accesos excepcionales.",
+    description:
+      "Gestiona profesionales y configuración; supervisa trazabilidad, alertas y accesos excepcionales.",
     permissions: {
       reviewClinical: false,
       approveClinical: false,
       digitize: false,
       viewAudit: true,
-      manageUsers: false,
+      manageUsers: true,
     },
   },
   {

@@ -1,6 +1,7 @@
 import {
   Activity,
   AlertTriangle,
+  Archive,
   ClipboardCheck,
   FileCheck2,
   Home,
@@ -31,14 +32,13 @@ export const navByRole: Record<Role, NavItem[]> = {
     { label: "Profesionales", href: "/profesionales", icon: Users },
     { label: "Roles", href: "/roles", icon: LockKeyhole },
     { label: "Configuración", href: "/configuracion", icon: Activity },
-  ],
-  AUDITOR: [
     { label: "Auditoría", href: "/auditoria", icon: ClipboardCheck },
     { label: "Alertas", href: "/alertas", icon: AlertTriangle },
     { label: "Accesos excepcionales", href: "/accesos", icon: LockKeyhole },
   ],
   DIGITALIZADOR: [
     { label: "Digitalizar", href: "/digitalizar", icon: ScanLine },
+    { label: "Migración de actas", href: "/migracion", icon: Archive },
     { label: "Pendientes", href: "/pendientes", icon: Upload },
     { label: "Historial", href: "/historial", icon: FileCheck2 },
   ],
@@ -47,6 +47,5 @@ export const navByRole: Record<Role, NavItem[]> = {
 export const roleLabel: Record<Role, string> = {
   MÉDICO: "Médico",
   ADMIN: "Administrador",
-  AUDITOR: "Auditor",
   DIGITALIZADOR: "Digitalizador",
 };

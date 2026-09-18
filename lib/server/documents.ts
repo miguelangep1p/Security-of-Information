@@ -4,11 +4,12 @@ import { audit } from "@/lib/server/audit";
 import { actorOf, type ServerSession } from "@/lib/server/auth";
 import { sql, transaction } from "@/lib/server/db";
 import { ApiError } from "@/lib/server/http";
+import { extractPrescription } from "@/lib/server/vision";
 import type { QueueItem, QueueStatus } from "@/lib/types";
 
 // Vercel limita el cuerpo de una función a ~4,5 MB.
-const MAX_BYTES = 4 * 1024 * 1024;
-const EXTENSIONS: Record<string, string> = {
+export const MAX_BYTES = 4 * 1024 * 1024;
+export const EXTENSIONS: Record<string, string> = {
   "application/pdf": "pdf",
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -48,16 +49,17 @@ export async function createDocument(session: ServerSession, recordId: string, f
     where id = ${recordId} and institution_id = ${session.institutionId}`;
   if (!record) throw new ApiError(404, "Historia clínica no encontrada.");
 
-  const hash = createHash("sha256").update(Buffer.from(await file.arrayBuffer())).digest("hex");
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const hash = createHash("sha256").update(buffer).digest("hex");
   const id = randomUUID();
-  // Sin object storage configurado se registran la huella y los metadatos; el archivo no se conserva.
+  // Sin object storage configurado, el archivo se guarda en la propia fila (columna bytea).
   const storageKey = `uploads/${record.record_number}/${id}.${extension}`;
 
   await transaction(async (tx) => {
     await tx`
-      insert into documents (id, clinical_record_id, kind, title, storage_key, mime_type, size_bytes, sha256, uploaded_by)
+      insert into documents (id, clinical_record_id, kind, title, storage_key, mime_type, size_bytes, sha256, bytes, uploaded_by)
       values (${id}, ${recordId}, 'Receta', ${`Receta ${record.record_number}`}, ${storageKey}, ${file.type},
-              ${file.size}, decode(${hash}, 'hex'), ${session.userId})`;
+              ${file.size}, decode(${hash}, 'hex'), decode(${buffer.toString("hex")}, 'hex'), ${session.userId})`;
     await audit(tx, actorOf(session), {
       action: "DOCUMENT_UPLOAD",
       resourceType: "document",
@@ -70,9 +72,27 @@ export async function createDocument(session: ServerSession, recordId: string, f
   return { id, sha256: hash };
 }
 
+// El panel "Documento original" de /revision no mostraba esto: renderizaba una maqueta de
+// papel armada con los campos ya transcritos, nunca el archivo real que subió Digitalización.
+export async function getDocumentImage(session: ServerSession, documentId: string) {
+  const [doc] = await sql`
+    select d.mime_type, encode(d.bytes, 'hex') as bytes_hex,
+           can_access_record(${session.userId}, cr.id) as allowed
+    from documents d
+    join clinical_records cr on cr.id = d.clinical_record_id
+    where d.id = ${documentId} and cr.institution_id = ${session.institutionId}`;
+  if (!doc) throw new ApiError(404, "Documento no encontrado.");
+  if (!doc.allowed) {
+    throw new ApiError(403, "No tienes relación asistencial ni acceso vigente para esta historia clínica.");
+  }
+  // Historiales de antes de guardar el archivo original (fixtures de prueba, migraciones viejas) no tienen bytes.
+  if (!doc.bytes_hex) throw new ApiError(404, "Este documento no tiene un archivo original guardado.");
+  return { mimeType: doc.mime_type as string, bytes: Buffer.from(doc.bytes_hex as string, "hex") };
+}
+
 export async function advanceDocument(session: ServerSession, id: string, status: "analizando" | "enviado") {
   const [document] = await sql`
-    select d.status, cr.record_number
+    select d.status, d.mime_type, encode(d.bytes, 'hex') as bytes_hex, cr.record_number
     from documents d
     join clinical_records cr on cr.id = d.clinical_record_id
     where d.id = ${id} and cr.institution_id = ${session.institutionId}`;
@@ -82,6 +102,12 @@ export async function advanceDocument(session: ServerSession, id: string, status
   if (document.status !== expected) {
     throw new ApiError(409, `El documento está "${document.status}" y no puede pasar a "${status}".`);
   }
+
+  // Se hace antes de abrir la transacción: es una llamada de red lenta y no debe retener la conexión.
+  const extraction =
+    status === "analizando" && document.bytes_hex
+      ? await extractPrescription(Buffer.from(document.bytes_hex, "hex"), document.mime_type)
+      : null;
 
   await transaction(async (tx) => {
     const moved =
@@ -95,14 +121,23 @@ export async function advanceDocument(session: ServerSession, id: string, status
     if (moved.length === 0) throw new ApiError(409, "El estado del documento cambió. Recarga la lista.");
 
     if (status === "analizando") {
-      // Motor IA simulado: crea una propuesta vacía y marcada para que el médico la complete.
+      // Sin extracción (sin GEMINI_API_KEY, o el motor no pudo leer la imagen): propuesta vacía
+      // para que el médico la complete a mano, igual que antes.
+      const fields = extraction ?? {
+        medication: "",
+        dose: "",
+        frequency: "",
+        duration: "",
+        confidence: 0,
+        lowConfidenceFields: ["medication", "dose", "frequency", "duration"] as const,
+      };
       const versionId = randomUUID();
       await tx`
         insert into transcription_versions (id, document_id, version, origin, confidence, low_confidence_fields)
-        values (${versionId}, ${id}, 1, 'IA', 0, array['medication', 'dose', 'frequency', 'duration'])`;
+        values (${versionId}, ${id}, 1, 'IA', ${fields.confidence}, ${fields.lowConfidenceFields})`;
       await tx`
         insert into prescription_items (version_id, position, medication, dose, frequency, duration)
-        values (${versionId}, 1, '', '', '', '')`;
+        values (${versionId}, 1, ${fields.medication}, ${fields.dose}, ${fields.frequency}, ${fields.duration})`;
     }
 
     await audit(tx, actorOf(session), {

@@ -54,11 +54,12 @@ export async function updateAlert(
 // ─── Accesos excepcionales (break-glass) ────────────────────────────────────
 
 export async function listAccessRequests(): Promise<AccessRequest[]> {
+  // Pendientes primero (requieren acción de un auditor); el resto, más reciente primero.
   const rows = await sql`
     select id, requester, patient, record_id, reason, justification, status, requested_at, expires_at,
            extract(epoch from requested_window)::int / 3600 as window_hours
     from access_requests_view
-    order by requested_at desc
+    order by status <> 'pendiente', requested_at desc
     limit 100`;
   return rows.map((row) => ({
     id: row.id,

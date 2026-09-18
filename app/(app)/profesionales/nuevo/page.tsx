@@ -71,7 +71,6 @@ export default function NuevoProfesionalPage() {
             <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
               <option value="MÉDICO">Médico</option>
               <option value="ADMIN">Administrador</option>
-              <option value="AUDITOR">Auditor</option>
               <option value="DIGITALIZADOR">Digitalizador</option>
             </select>
           </div>

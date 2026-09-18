@@ -13,7 +13,7 @@ create extension if not exists citext;
 
 -- ─── Tipos ──────────────────────────────────────────────────────────────────
 
-create type role_code         as enum ('MÉDICO', 'ADMIN', 'AUDITOR', 'DIGITALIZADOR');
+create type role_code         as enum ('MÉDICO', 'ADMIN', 'DIGITALIZADOR');
 create type membership_status as enum ('Pendiente', 'Habilitado', 'Suspendido');
 create type cmp_status        as enum ('verificado', 'revision_manual', 'no_verificado');
 create type auth_method       as enum ('WebAuthn', 'EmailOTP', 'Sistema');
@@ -203,6 +203,50 @@ create index care_relationships_active_idx
   on care_relationships (professional_id, patient_id)
   where ended_at is null;
 
+-- ─── Migración masiva de actas físicas ──────────────────────────────────────
+
+create type migration_item_status as enum
+  ('pendiente', 'analizado', 'vinculado', 'creado', 'descartado');
+
+create table migration_batches (
+  id             uuid primary key default gen_random_uuid(),
+  institution_id uuid not null references institutions (id),
+  created_by     uuid not null references users (id),
+  created_at     timestamptz not null default now()
+);
+
+-- Zona de espera entre la subida de un acta y la confirmación de a qué paciente/historia
+-- pertenece: documents.clinical_record_id es not null, así que no puede haber un documento
+-- real hasta que un digitalizador confirme el match (o el alta de un paciente nuevo).
+create table migration_items (
+  id                          uuid primary key default gen_random_uuid(),
+  batch_id                    uuid not null references migration_batches (id) on delete cascade,
+  filename                    text not null,
+  mime_type                   text not null check (mime_type in ('application/pdf', 'image/jpeg', 'image/png')),
+  size_bytes                  integer not null check (size_bytes > 0),
+  sha256                      bytea not null check (length(sha256) = 32),
+  bytes                       bytea,                 -- se libera (null) al confirmar, una vez copiado a documents
+  status                      migration_item_status not null default 'pendiente',
+  ocr_patient_name            text,
+  ocr_patient_dni             text,                  -- propuesta del OCR; no pasa por el check estricto de patients.dni
+  ocr_document_kind           text,
+  ocr_confidence               smallint check (ocr_confidence between 0 and 100),
+  ocr_result                  jsonb not null default '{}',  -- payload completo devuelto por extractMigrationFields
+  suggested_patient_id        uuid references patients (id),  -- match automático por DNI, propuesto, no confirmado
+  matched_patient_id          uuid references patients (id),
+  matched_clinical_record_id  uuid references clinical_records (id),
+  resulting_document_id       uuid references documents (id),
+  reviewed_by                 uuid references users (id),
+  reviewed_at                 timestamptz,
+  created_at                  timestamptz not null default now(),
+  check (status not in ('vinculado', 'creado') or
+         (matched_patient_id is not null and matched_clinical_record_id is not null
+          and resulting_document_id is not null and reviewed_by is not null and reviewed_at is not null)),
+  check (status <> 'descartado' or (reviewed_by is not null and reviewed_at is not null))
+);
+
+create index migration_items_batch_idx on migration_items (batch_id, status);
+
 -- ─── Documentos y transcripciones ───────────────────────────────────────────
 
 -- El archivo escaneado vive en object storage (R2, S3, Vercel Blob…); aquí solo su referencia.
@@ -213,9 +257,10 @@ create table documents (
   kind               text not null,           -- Receta, Nota de evolución…
   title              text not null,
   storage_key        text not null unique,
-  mime_type          text not null check (mime_type in ('application/pdf', 'image/jpeg', 'image/png')),
+  mime_type          text not null check (mime_type in ('application/pdf', 'image/jpeg', 'image/png', 'image/svg+xml')),
   size_bytes         integer not null check (size_bytes > 0),
   sha256             bytea not null check (length(sha256) = 32),   -- "Hash original"
+  bytes              bytea,                  -- contenido del archivo, para el análisis de imagen
   status             document_status not null default 'recibido',
   uploaded_by        uuid not null references users (id),
   received_at        timestamptz not null default now(),
@@ -505,8 +550,7 @@ where d.status = 'enviado';
 
 insert into roles (code, label, description) values
   ('MÉDICO',        'Médico',        'Revisa y valida transcripciones clínicas de sus pacientes.'),
-  ('ADMIN',         'Administrador', 'Gestiona profesionales y configuración. Sin acceso clínico.'),
-  ('AUDITOR',       'Auditor',       'Supervisa trazabilidad, alertas y accesos excepcionales.'),
+  ('ADMIN',         'Administrador', 'Gestiona profesionales y configuración; supervisa trazabilidad, alertas y accesos excepcionales.'),
   ('DIGITALIZADOR', 'Digitalizador', 'Carga y prepara documentos. No puede aprobar.');
 
 insert into permissions (code, label) values
@@ -520,7 +564,7 @@ insert into role_permissions (role, permission) values
   ('MÉDICO',        'reviewClinical'),
   ('MÉDICO',        'approveClinical'),
   ('ADMIN',         'manageUsers'),
-  ('AUDITOR',       'viewAudit'),
+  ('ADMIN',         'viewAudit'),
   ('DIGITALIZADOR', 'digitize');
 
 insert into service_status (service, label) values

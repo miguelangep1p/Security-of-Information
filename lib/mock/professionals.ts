@@ -38,7 +38,7 @@ export const professionals: Professional[] = [
     name: "Luis Paredes",
     cmp: "059310",
     institution: "Hospital Regional Demo",
-    role: "AUDITOR",
+    role: "ADMIN",
     status: "Habilitado",
   },
   {

@@ -85,7 +85,8 @@ export async function registrationOptions(session: ServerSession) {
     userID: new Uint8Array(Buffer.from(session.userId.replaceAll("-", ""), "hex")),
     attestationType: "none",
     excludeCredentials: existing.map((row) => ({ id: hexToBase64Url(row.id), transports: row.transports })),
-    authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
+    // platform: exige el autenticador integrado del equipo (Touch ID/Windows Hello), no un teléfono ni una llave externa.
+    authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
   });
   await saveChallenge("registro", options.challenge, session.userId);
   return options;

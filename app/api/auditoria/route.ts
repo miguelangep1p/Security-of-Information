@@ -10,7 +10,7 @@ const query = z.object({
 });
 
 export const GET = route(async (request) => {
-  await requireRole("AUDITOR");
+  await requireRole("ADMIN");
   const params = Object.fromEntries(new URL(request.url).searchParams);
   const parsed = query.safeParse(params);
   if (!parsed.success) throw new ApiError(422, "Filtros de auditoría inválidos.");

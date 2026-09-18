@@ -258,7 +258,7 @@ export async function listDemoUsers(): Promise<User[]> {
     left join professional_profiles pp on pp.user_id = u.id
     where u.is_active
     order by u.id, m.created_at`;
-  const roleOrder: Role[] = ["MÉDICO", "ADMIN", "AUDITOR", "DIGITALIZADOR"];
+  const roleOrder: Role[] = ["MÉDICO", "ADMIN", "DIGITALIZADOR"];
   return rows
     .map(
       (row): User => ({

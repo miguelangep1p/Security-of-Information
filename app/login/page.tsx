@@ -7,7 +7,6 @@ import {
   ArrowRight,
   BadgeCheck,
   Check,
-  FileCheck2,
   Fingerprint,
   Lock,
   Mail,
@@ -31,21 +30,18 @@ type TabMode = "demo" | "credentials";
 const roleIcons: Record<Role, React.ComponentType<{ size?: number }>> = {
   MÉDICO: Stethoscope,
   ADMIN: ShieldCheck,
-  AUDITOR: FileCheck2,
   DIGITALIZADOR: ScanLine,
 };
 
 const roleBadgeClasses: Record<Role, string> = {
   MÉDICO: "badge-role-medico",
   ADMIN: "badge-role-admin",
-  AUDITOR: "badge-role-auditor",
   DIGITALIZADOR: "badge-role-digitalizador",
 };
 
 const roleAvatarColors: Record<Role, { bg: string; color: string }> = {
   MÉDICO: { bg: "#dcf0e8", color: "#0c7364" },
   ADMIN: { bg: "#e0e7ff", color: "#3730a3" },
-  AUDITOR: { bg: "#fef3c7", color: "#92400e" },
   DIGITALIZADOR: { bg: "#cffafe", color: "#0e7490" },
 };
 
@@ -210,7 +206,7 @@ export default function LoginPage() {
               <div className="aside-feature-text">
                 <b>Control de Accesos por Rol (RBAC)</b>
                 <span>
-                  Permisos granulares para médicos, digitalizadores y auditores de salud.
+                  Permisos granulares para médicos, administradores y digitalizadores.
                 </span>
               </div>
             </div>
@@ -314,7 +310,6 @@ export default function LoginPage() {
                   { id: "ALL", label: `Todos (${users.length})` },
                   { id: "MÉDICO", label: "Médicos" },
                   { id: "ADMIN", label: "Administración" },
-                  { id: "AUDITOR", label: "Auditoría" },
                   { id: "DIGITALIZADOR", label: "Digitalización" },
                 ].map((f) => (
                   <button
@@ -625,15 +620,15 @@ export default function LoginPage() {
               >
                 {authMethod === "passkey" ? (
                   <>
-                    <Fingerprint size={19} /> Continuar con Passkey
+                    <Fingerprint size={19} /> {busy ? "Esperando al dispositivo…" : "Continuar con Passkey"}
                   </>
                 ) : codeSent ? (
                   <>
-                    <ArrowRight size={19} /> Validar e ingresar
+                    <ArrowRight size={19} /> {busy ? "Validando…" : "Validar e ingresar"}
                   </>
                 ) : (
                   <>
-                    <Mail size={19} /> Enviar código
+                    <Mail size={19} /> {busy ? "Enviando…" : "Enviar código"}
                   </>
                 )}
               </button>

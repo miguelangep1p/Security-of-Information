@@ -87,4 +87,12 @@ export const actionLabel: Record<string, string> = {
   ACCESS_APPROVE: "Acceso excepcional aprobado",
   ACCESS_DENY: "Acceso excepcional denegado",
   ACCESS_REVOKE: "Acceso excepcional revocado",
+  MIGRATION_BATCH_CREATE: "Lote de migración creado",
+  MIGRATION_ITEM_UPLOAD: "Acta subida a migración",
+  MIGRATION_ITEM_DISCARD: "Acta descartada de migración",
+  PATIENT_CREATE: "Alta de paciente",
+  CLINICAL_RECORD_CREATE: "Historia clínica creada",
+  CARE_RELATIONSHIP_BACKFILL: "Acceso médico otorgado por migración",
+  DOCUMENT_MIGRATE_IMPORT: "Documento migrado",
+  DOCUMENT_REASSIGN: "Documento reasignado a otro paciente",
 };

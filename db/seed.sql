@@ -34,7 +34,7 @@ from (values
   ('a.valdivia@clinicademo.pe',    'Clínica Demo Norte',     'MÉDICO'),
   ('d.robles@centromedicodemo.pe', 'Centro Médico Demo',     'MÉDICO'),
   ('r.huaman@hospitaldemo.pe',     'Hospital Regional Demo', 'ADMIN'),
-  ('l.paredes@hospitaldemo.pe',    'Hospital Regional Demo', 'AUDITOR'),
+  ('l.paredes@hospitaldemo.pe',    'Hospital Regional Demo', 'ADMIN'),
   ('e.quispe@hospitaldemo.pe',     'Hospital Regional Demo', 'DIGITALIZADOR')
 ) as m(email, institution, role)
 join users u        on u.email = m.email

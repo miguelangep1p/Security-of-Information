@@ -77,7 +77,7 @@ export default function DigitalizarPage() {
     setError(null);
   };
 
-  // Cada paso es una llamada real: carga, análisis (IA simulada en el servidor) y envío a revisión.
+  // Cada paso es una llamada real: carga, análisis de imagen (Gemini, en el servidor) y envío a revisión.
   const startDigitizing = async () => {
     if (!file || !selectedRecord) return;
     setError(null);
