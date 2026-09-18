@@ -247,3 +247,17 @@ export type MigrationBatch = {
   createdAt: string;
   itemCounts: Record<MigrationItemStatus, number>;
 };
+
+// Resultado de identificar al paciente de un archivo antes de subirlo, en /digitalizar.
+//   emparejado   → se leyó el DNI y tiene historia aquí: se preselecciona
+//   sin-historia → se leyó el DNI pero no hay historia en esta institución (paciente nuevo)
+//   sin-dni      → no se pudo leer un DNI de 8 dígitos en la imagen
+//   sin-motor    → no hay GEMINI_API_KEY: la pantalla se comporta como antes
+export type DocumentIdentityStatus = "emparejado" | "sin-historia" | "sin-dni" | "sin-motor";
+
+export type DocumentIdentity = {
+  patientName: string;
+  patientDni: string;
+  record: ClinicalRecordOption | null;
+  status: DocumentIdentityStatus;
+};

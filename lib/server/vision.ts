@@ -185,3 +185,37 @@ export async function extractMigrationFields(bytes: Buffer, mimeType: string): P
     noteSummary: String(parsed.noteSummary ?? ""),
   };
 }
+
+const IDENTITY_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    patientName: { type: "STRING" },
+    patientDni: { type: "STRING" },
+  },
+  required: ["patientName", "patientDni"],
+};
+
+const IDENTITY_PROMPT = `Eres un asistente que identifica al paciente de un documento clínico peruano
+(receta, nota de evolución u otro), manuscrito o impreso.
+
+De la imagen adjunta, extrae únicamente:
+- patientName: nombre completo del paciente tal como aparece en el documento
+- patientDni: DNI del paciente, exactamente 8 dígitos, sin puntos ni espacios
+
+No confundas al paciente con el médico que firma: el DNI del paciente aparece junto a sus datos,
+no junto al sello o la colegiatura (CMP/RNE). Si un campo no aparece o no es legible con confianza
+razonable, devuélvelo como cadena vacía "" en vez de adivinar.
+Responde solo con el JSON pedido, sin explicaciones.`;
+
+export type PatientIdentity = { patientName: string; patientDni: string };
+
+// Extracción mínima para /digitalizar: solo hace falta a quién pertenece el papel, no la receta.
+// Pedir menos campos que extractMigrationFields la hace más rápida y más difícil de confundir.
+export async function identifyPatient(bytes: Buffer, mimeType: string): Promise<PatientIdentity | null> {
+  const parsed = await callGemini(IDENTITY_PROMPT, IDENTITY_SCHEMA, bytes, mimeType);
+  if (!parsed) return null;
+  return {
+    patientName: String(parsed.patientName ?? ""),
+    patientDni: String(parsed.patientDni ?? ""),
+  };
+}

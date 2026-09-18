@@ -283,3 +283,17 @@ export async function listClinicalRecords(session: ServerSession): Promise<Clini
     order by cr.record_number`;
   return rows.map((row) => ({ id: row.id, recordNumber: row.record_number, patient: row.patient }));
 }
+
+// Historia clínica del paciente con ese DNI en esta institución. patients.dni es único, y un
+// paciente tiene como mucho una historia por institución, así que el match es directo.
+export async function findRecordByDni(
+  dni: string,
+  institutionId: string,
+): Promise<ClinicalRecordOption | null> {
+  const [row] = await sql`
+    select cr.id, cr.record_number, p.full_name as patient
+    from clinical_records cr
+    join patients p on p.id = cr.patient_id
+    where cr.institution_id = ${institutionId} and p.dni = ${dni}`;
+  return row ? { id: row.id, recordNumber: row.record_number, patient: row.patient } : null;
+}

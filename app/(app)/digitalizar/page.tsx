@@ -3,20 +3,23 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowRight,
   Check,
   FileText,
   LockKeyhole,
   ScanLine,
+  Search,
   Send,
   Sparkles,
   Upload,
+  UserCheck,
   X,
 } from "lucide-react";
 import { ErrorNote } from "@/components/ErrorNote";
 import { api, useApi } from "@/lib/client/api";
 import { shortHash } from "@/lib/format";
-import type { ClinicalRecordOption } from "@/lib/types";
+import type { ClinicalRecordOption, DocumentIdentity } from "@/lib/types";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -59,15 +62,38 @@ export default function DigitalizarPage() {
   const [recordId, setRecordId] = useState("");
   const [uploaded, setUploaded] = useState<{ patient: string; sha256: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [identity, setIdentity] = useState<DocumentIdentity | null>(null);
+  const [identifying, setIdentifying] = useState(false);
 
   const options = records.data?.records ?? [];
   const selectedRecord = options.find((option) => option.id === recordId) ?? options[0];
+
+  // Lee el paciente del archivo y preselecciona su historia clínica. Es una ayuda: si el motor
+  // de IA no está configurado o la llamada falla, la pantalla se comporta como antes y el
+  // digitalizador elige a mano.
+  const identifyAndPreselect = async (picked: File) => {
+    setIdentifying(true);
+    try {
+      const form = new FormData();
+      form.append("file", picked);
+      const found = await api<DocumentIdentity>("/api/documentos/identificar", { body: form });
+      setIdentity(found);
+      if (found.record) setRecordId(found.record.id);
+    } catch {
+      setIdentity(null);
+    } finally {
+      setIdentifying(false);
+    }
+  };
 
   const handleFiles = (list: FileList | null) => {
     const picked = list?.[0];
     if (!picked) return;
     setError(picked.size > MAX_BYTES ? "El archivo debe pesar como máximo 4 MB." : null);
-    if (picked.size <= MAX_BYTES) setFile(picked);
+    if (picked.size > MAX_BYTES) return;
+    setFile(picked);
+    setIdentity(null);
+    void identifyAndPreselect(picked);
   };
 
   const reset = () => {
@@ -75,6 +101,8 @@ export default function DigitalizarPage() {
     setPhase(0);
     setUploaded(null);
     setError(null);
+    setIdentity(null);
+    setIdentifying(false);
   };
 
   // Cada paso es una llamada real: carga, análisis de imagen (Gemini, en el servidor) y envío a revisión.
@@ -189,12 +217,16 @@ export default function DigitalizarPage() {
                   <button
                     type="button"
                     className="file-chip-remove"
-                    onClick={() => setFile(null)}
+                    onClick={() => {
+                      setFile(null);
+                      setIdentity(null);
+                    }}
                     aria-label="Quitar archivo"
                   >
                     <X size={16} />
                   </button>
                 </div>
+                <IdentityNote identity={identity} loading={identifying} />
                 <div className="field">
                   <label>Historia clínica</label>
                   <select
@@ -305,5 +337,52 @@ export default function DigitalizarPage() {
         </div>
       </div>
     </>
+  );
+}
+
+// Qué leyó la IA del archivo, antes de subirlo. "sin-motor" no muestra nada: sin GEMINI_API_KEY
+// la pantalla debe verse exactamente como antes de esta función.
+function IdentityNote({ identity, loading }: { identity: DocumentIdentity | null; loading: boolean }) {
+  const neutral = { background: "#f2f5f4", borderColor: "var(--line)", color: "var(--ink)" };
+
+  if (loading) {
+    return (
+      <div className="verified" style={neutral}>
+        <Search size={18} style={{ flexShrink: 0 }} /> Identificando al paciente del documento…
+      </div>
+    );
+  }
+
+  if (!identity || identity.status === "sin-motor") return null;
+
+  if (identity.status === "emparejado" && identity.record) {
+    return (
+      <div className="verified">
+        <UserCheck size={18} style={{ flexShrink: 0 }} />
+        <span>
+          El documento es de <b>{identity.patientName || "un paciente sin nombre legible"}</b> · DNI{" "}
+          {identity.patientDni}. Se seleccionó su historia <b>{identity.record.recordNumber}</b>.
+        </span>
+      </div>
+    );
+  }
+
+  if (identity.status === "sin-historia") {
+    return (
+      <div className="verified" style={{ background: "#fff8ec", borderColor: "#f0dcb6", color: "#8a5a11" }}>
+        <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+        <span>
+          El documento es de <b>{identity.patientName || "un paciente"}</b> · DNI {identity.patientDni}, que no
+          tiene historia clínica en esta institución. Si es un paciente nuevo, cárgalo desde Migración de actas.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="verified" style={neutral}>
+      <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+      <span>No se pudo leer el DNI del paciente en la imagen. Elige la historia clínica a mano.</span>
+    </div>
   );
 }
