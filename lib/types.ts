@@ -182,6 +182,12 @@ export type ServiceStatus = {
   updatedAt: string;
 };
 
+export type RiskThreshold = {
+  maxDecisions: number;
+  windowSeconds: number;
+  updatedAt: string;
+};
+
 export type ActivityItem = {
   id: string;
   action: string;

@@ -462,6 +462,16 @@ create table service_status (
   updated_at  timestamptz not null default now()
 );
 
+-- Umbral configurable de la alerta "ritmo de revisión inusual" en /revision.
+-- Fila única (patrón singleton con id boolean).
+create table risk_thresholds (
+  id             boolean primary key default true check (id),
+  max_decisions  integer not null default 2 check (max_decisions >= 1),
+  window_seconds integer not null default 3 check (window_seconds >= 1),
+  updated_by     uuid references users (id),
+  updated_at     timestamptz not null default now()
+);
+
 -- ─── updated_at automático ──────────────────────────────────────────────────
 
 create trigger users_updated_at           before update on users           for each row execute function set_updated_at();
@@ -470,6 +480,7 @@ create trigger documents_updated_at       before update on documents       for e
 create trigger access_requests_updated_at before update on access_requests for each row execute function set_updated_at();
 create trigger alerts_updated_at          before update on alerts          for each row execute function set_updated_at();
 create trigger service_status_updated_at  before update on service_status  for each row execute function set_updated_at();
+create trigger risk_thresholds_updated_at before update on risk_thresholds for each row execute function set_updated_at();
 
 -- ─── Vistas con la misma forma que los tipos de lib/types.ts ────────────────
 
@@ -573,6 +584,8 @@ insert into service_status (service, label) values
   ('transcription',  'Transcripción IA'),
   ('audit',          'Auditoría'),
   ('risk_engine',    'Motor de riesgo');
+
+insert into risk_thresholds (id) values (true);
 
 commit;
 

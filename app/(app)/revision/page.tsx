@@ -18,7 +18,7 @@ import { api, useApi } from "@/lib/client/api";
 import { useSession } from "@/lib/client/session";
 import { useFlash } from "@/lib/client/useFlash";
 import { describeDevice } from "@/lib/format";
-import type { AccessReason, AccessStatus, ReviewField, ReviewItem, ReviewQueue } from "@/lib/types";
+import type { AccessReason, AccessStatus, ReviewField, ReviewItem, ReviewQueue, RiskThreshold } from "@/lib/types";
 
 const BATCH_SIZE = 3;
 
@@ -59,6 +59,7 @@ export default function RevisionPage() {
   const { session } = useSession();
   const router = useRouter();
   const queue = useApi<ReviewQueue>("/api/revision");
+  const riskThreshold = useApi<RiskThreshold>("/api/configuracion/riesgo");
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [skipped, setSkipped] = useState<string[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -76,12 +77,15 @@ export default function RevisionPage() {
   const remaining = all.filter((item) => !handled.has(item.versionId));
   const d = remaining[0];
 
+  const maxDecisions = riskThreshold.data?.maxDecisions ?? 2;
+  const windowMs = (riskThreshold.data?.windowSeconds ?? 3) * 1000;
+
   const decide = (item: ReviewItem, corrected: Draft | null) => {
     const now = Date.now();
-    decisionTimes.current = [...decisionTimes.current, now].filter((time) => now - time < 3000);
-    if (decisionTimes.current.length >= 2 && !risk) {
+    decisionTimes.current = [...decisionTimes.current, now].filter((time) => now - time < windowMs);
+    if (decisionTimes.current.length >= maxDecisions && !risk) {
       decisionTimes.current = [];
-      const reason = "2 decisiones clínicas en menos de 3 segundos";
+      const reason = `${maxDecisions} decisiones clínicas en menos de ${windowMs / 1000} segundos`;
       setRisk(true);
       setRiskReason(reason);
       setRiskModal(true);

@@ -3,7 +3,7 @@ import { audit } from "@/lib/server/audit";
 import { actorOf, type ServerSession } from "@/lib/server/auth";
 import { sql, transaction } from "@/lib/server/db";
 import { ApiError } from "@/lib/server/http";
-import type { AccessReason, AccessRequest, AlertItem, AlertStatus, ServiceStatus } from "@/lib/types";
+import type { AccessReason, AccessRequest, AlertItem, AlertStatus, RiskThreshold, ServiceStatus } from "@/lib/types";
 
 // ─── Alertas ────────────────────────────────────────────────────────────────
 
@@ -200,6 +200,32 @@ export async function setServiceStatus(session: ServerSession, service: string, 
       resourceRef: updated[0]!.label,
       result: "ALLOW",
       metadata: { operational },
+    });
+  });
+}
+
+// ─── Umbral de "ritmo de revisión inusual" ──────────────────────────────────
+
+export async function getRiskThreshold(): Promise<RiskThreshold> {
+  const [row] = await sql`select max_decisions, window_seconds, updated_at from risk_thresholds where id`;
+  return { maxDecisions: row!.max_decisions, windowSeconds: row!.window_seconds, updatedAt: row!.updated_at };
+}
+
+export async function setRiskThreshold(
+  session: ServerSession,
+  patch: { maxDecisions: number; windowSeconds: number },
+) {
+  await transaction(async (tx) => {
+    await tx`
+      update risk_thresholds
+      set max_decisions = ${patch.maxDecisions}, window_seconds = ${patch.windowSeconds}, updated_by = ${session.userId}
+      where id`;
+    await audit(tx, actorOf(session), {
+      action: "RISK_THRESHOLD_CHANGE",
+      resourceType: "risk_threshold",
+      resourceRef: "Ritmo de revisión",
+      result: "ALLOW",
+      metadata: patch,
     });
   });
 }
