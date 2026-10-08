@@ -29,3 +29,5 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+next-env.d.ts
